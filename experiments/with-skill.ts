@@ -14,7 +14,7 @@ const config: ExperimentConfig = {
   model: "claude-sonnet-4-20250514",
   runs: 1,
   timeout: 240,
-  skill: join(__dirname, "..", "skills", "base-ui", "SKILL_ALL.md"),
+  skill: join(__dirname, "..", "skills", "base-ui", "SKILL_CONCATENATED.md"),
   evals: ["*"],
   // Agent config used when running with --mode agent
   agent: {
