@@ -9,6 +9,18 @@ export interface Usage {
 }
 
 /**
+ * Individual test result from vitest
+ */
+export interface TestDetail {
+  /** Test name */
+  name: string;
+  /** Whether the test passed */
+  passed: boolean;
+  /** Failure message if failed */
+  failureMessage?: string;
+}
+
+/**
  * Execution mode for running evals
  * - 'sdk': Direct API calls via @anthropic-ai/sdk (default)
  * - 'agent': Interactive agent session via CLI (e.g., Claude Code)
@@ -103,6 +115,8 @@ export interface RunResult {
   generatedFiles?: string[];
   /** Token usage for this run */
   usage?: Usage;
+  /** Individual test results (for debug mode) */
+  testDetails?: TestDetail[];
 }
 
 /**

@@ -114,7 +114,8 @@ ${chalk.bold('Options:')}
                       agent: Interactive agent via Claude Code CLI
   --runs <number>     Override number of runs per eval
   --verbose, -v       Verbose output
-  --debug             Keep generated test files in .workspaces/ for manual inspection
+  --debug             Enable debug mode: shows individual test pass/fail, detailed error
+                      messages, SDK/agent errors, and keeps test files in .workspaces/
   --help, -h          Show this help message
 
 ${chalk.bold('Examples:')}
@@ -264,7 +265,7 @@ async function main(): Promise<void> {
       EVALS_DIR,
       ROOT_DIR,
       (evalName, run, total, runResult) => {
-        printRunProgress(config.name, evalName, run, total, runResult.passed);
+        printRunProgress(config.name, evalName, run, total, runResult.passed, runResult, options.debug);
       },
       { debug: options.debug }
     );

@@ -13,6 +13,7 @@ import type {
   RunnerOptions,
   SkillDefinition,
   Usage,
+  TestDetail,
 } from "./types.js";
 import { loadSkill, augmentPromptWithSkill } from "./skill-loader.js";
 import { runAgentEval, copyStarterFiles } from "./agent-runner.js";
@@ -282,6 +283,54 @@ async function writeGeneratedFiles(
 }
 
 /**
+ * Vitest JSON output types
+ */
+interface VitestAssertionResult {
+  fullName?: string;
+  title?: string;
+  status?: string;
+  failureMessages?: string[];
+}
+
+interface VitestTestResult {
+  assertionResults?: VitestAssertionResult[];
+}
+
+interface VitestJsonOutput {
+  numPassedTests?: number;
+  numTotalTests?: number;
+  numFailedTests?: number;
+  success?: boolean;
+  testResults?: VitestTestResult[];
+}
+
+/**
+ * Extract individual test details from vitest JSON output
+ */
+function extractTestDetails(vitestResult: VitestJsonOutput): TestDetail[] {
+  const details: TestDetail[] = [];
+
+  if (vitestResult.testResults) {
+    for (const testFile of vitestResult.testResults) {
+      if (testFile.assertionResults) {
+        for (const assertion of testFile.assertionResults) {
+          const name = assertion.fullName ?? assertion.title ?? "unknown test";
+          const passed = assertion.status === "passed";
+          const failureMessage =
+            !passed && assertion.failureMessages?.length
+              ? assertion.failureMessages.join("\n")
+              : undefined;
+
+          details.push({ name, passed, failureMessage });
+        }
+      }
+    }
+  }
+
+  return details;
+}
+
+/**
  * Run vitest on the eval file
  */
 async function runEvalTests(
@@ -292,6 +341,7 @@ async function runEvalTests(
   testsPassed: number;
   testsTotal: number;
   output: string;
+  testDetails: TestDetail[];
 }> {
   return new Promise((resolve) => {
     // Copy the EVAL.ts file and vitest config to the workspace
@@ -346,16 +396,14 @@ async function runEvalTests(
           try {
             const jsonMatch = stdout.match(/\{[\s\S]*"testResults"[\s\S]*\}/);
             if (jsonMatch) {
-              const result = JSON.parse(jsonMatch[0]) as {
-                numPassedTests?: number;
-                numTotalTests?: number;
-                success?: boolean;
-              };
+              const result = JSON.parse(jsonMatch[0]) as VitestJsonOutput;
+              const testDetails = extractTestDetails(result);
               resolve({
                 passed: result.success ?? code === 0,
                 testsPassed: result.numPassedTests ?? 0,
                 testsTotal: result.numTotalTests ?? 0,
                 output: stdout + stderr,
+                testDetails,
               });
               return;
             }
@@ -369,6 +417,7 @@ async function runEvalTests(
             testsPassed: code === 0 ? 1 : 0,
             testsTotal: 1,
             output: stdout + stderr,
+            testDetails: [],
           });
         });
 
@@ -378,6 +427,7 @@ async function runEvalTests(
             testsPassed: 0,
             testsTotal: 1,
             output: err.message,
+            testDetails: [],
           });
         });
       })
@@ -387,6 +437,7 @@ async function runEvalTests(
           testsPassed: 0,
           testsTotal: 1,
           output: `Failed to copy eval file: ${err.message}`,
+          testDetails: [],
         });
       });
   });
@@ -457,6 +508,7 @@ async function runSDKEval(
       generatedFiles: writtenFiles,
       error: testResult.passed ? undefined : testResult.output,
       usage,
+      testDetails: testResult.testDetails,
     },
     usage,
   };
@@ -512,6 +564,7 @@ async function runEval(
             testsPassed: testResult.testsPassed,
             testsTotal: testResult.testsTotal,
             error: testResult.passed ? agentResult.error : testResult.output,
+            testDetails: testResult.testDetails,
           };
         } else {
           result = {
@@ -548,13 +601,33 @@ async function runEval(
       runs.push(result);
       onProgress?.(i, config.runs, result);
     } catch (error) {
+      // Capture detailed error information for SDK/API errors
+      let errorMessage: string;
+      let errorDetails: string | undefined;
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        // Capture stack trace and any additional error properties
+        const errorObj = error as Error & { status?: number; code?: string; type?: string };
+        const parts: string[] = [error.message];
+        if (errorObj.status) parts.push(`Status: ${errorObj.status}`);
+        if (errorObj.code) parts.push(`Code: ${errorObj.code}`);
+        if (errorObj.type) parts.push(`Type: ${errorObj.type}`);
+        if (error.stack) parts.push(`Stack: ${error.stack.split('\n').slice(0, 3).join('\n')}`);
+        errorDetails = parts.join('\n');
+      } else {
+        errorMessage = String(error);
+        errorDetails = errorMessage;
+      }
+
       const result: RunResult = {
         runNumber: i,
         passed: false,
         testsPassed: 0,
         testsTotal: 1,
         durationMs: 0,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorDetails ?? errorMessage,
+        agentOutput: `SDK/API Error: ${errorMessage}`,
       };
       runs.push(result);
       onProgress?.(i, config.runs, result);
