@@ -35,7 +35,7 @@ describe("base-ui-vibe-eats eval", () => {
 
     // Check for Form import from @base-ui/react
     const formImportPattern =
-      /import\s+.*\bForm\b.*from\s+['"]@base-ui\/react['"]/;
+      /import\s+.*\bForm\b.*from\s+['"]@base-ui\/react\/form['"]/;
     const hasFormImport = formImportPattern.test(content);
 
     // Check for Form component usage in JSX
