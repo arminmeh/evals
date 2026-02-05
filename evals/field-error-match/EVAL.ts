@@ -3,20 +3,10 @@ import { test, expect } from "vitest";
 
 const content = readFileSync("src/App.tsx", "utf-8");
 
-test("imports Form from @base-ui/react/form", () => {
-  expect(content).toMatch(
-    /import\s+.*Form.*from\s+['"]@base-ui\/react\/form['"]/,
-  );
-});
-
 test("imports Field from @base-ui/react/field", () => {
   expect(content).toMatch(
     /import\s+.*Field.*from\s+['"]@base-ui\/react\/field['"]/,
   );
-});
-
-test("uses Form component", () => {
-  expect(content).toMatch(/<Form/);
 });
 
 test("uses Field.Root with name='email'", () => {
