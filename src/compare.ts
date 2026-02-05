@@ -174,57 +174,25 @@ export function printComparisonTable(comparison: ComparisonResult): void {
       ' on average'
   );
 
-  // Print token usage comparison (average per run)
+  // Print token usage comparison (per eval averages)
   console.log('');
   console.log(chalk.bold('━'.repeat(80)));
-  console.log(chalk.bold.cyan('                      TOKEN USAGE (avg per run)'));
+  console.log(chalk.bold.cyan('                    TOKEN USAGE (avg per run, per eval)'));
   console.log(chalk.bold('━'.repeat(80)) + '\n');
 
   const usageTable = new Table({
     head: [
-      chalk.bold('Experiment'),
-      chalk.bold('Input Tokens'),
-      chalk.bold('Output Tokens'),
-      chalk.bold('Total Tokens'),
+      chalk.bold('Eval'),
+      chalk.bold('Baseline'),
+      chalk.bold('With Skill'),
+      chalk.bold('Delta'),
     ],
-    colWidths: [20, 18, 18, 18],
+    colWidths: [30, 18, 18, 14],
     style: {
       head: [],
       border: [],
     },
   });
-
-  const baselineUsage = comparison.baseline.totalUsage;
-  const withSkillUsage = comparison.withSkill.totalUsage;
-
-  // Calculate total runs for each experiment (runs per eval * number of evals)
-  const baselineTotalRuns = comparison.baseline.config.runs * comparison.baseline.evalResults.length;
-  const withSkillTotalRuns = comparison.withSkill.config.runs * comparison.withSkill.evalResults.length;
-
-  // Calculate average tokens per run (rounded)
-  const baselineAvgInput = baselineTotalRuns > 0 ? Math.round((baselineUsage?.inputTokens ?? 0) / baselineTotalRuns) : 0;
-  const baselineAvgOutput = baselineTotalRuns > 0 ? Math.round((baselineUsage?.outputTokens ?? 0) / baselineTotalRuns) : 0;
-  const withSkillAvgInput = withSkillTotalRuns > 0 ? Math.round((withSkillUsage?.inputTokens ?? 0) / withSkillTotalRuns) : 0;
-  const withSkillAvgOutput = withSkillTotalRuns > 0 ? Math.round((withSkillUsage?.outputTokens ?? 0) / withSkillTotalRuns) : 0;
-
-  usageTable.push([
-    'Baseline',
-    formatTokens(baselineAvgInput),
-    formatTokens(baselineAvgOutput),
-    formatTokens(baselineAvgInput + baselineAvgOutput),
-  ]);
-
-  usageTable.push([
-    'With Skill',
-    formatTokens(withSkillAvgInput),
-    formatTokens(withSkillAvgOutput),
-    formatTokens(withSkillAvgInput + withSkillAvgOutput),
-  ]);
-
-  // Calculate and show the difference (in averages)
-  const inputDiff = withSkillAvgInput - baselineAvgInput;
-  const outputDiff = withSkillAvgOutput - baselineAvgOutput;
-  const totalDiff = inputDiff + outputDiff;
 
   const formatDiffTokens = (diff: number): string => {
     const formatted = formatTokens(Math.abs(diff));
@@ -236,49 +204,53 @@ export function printComparisonTable(comparison: ComparisonResult): void {
     return chalk.gray('0');
   };
 
-  usageTable.push([
-    chalk.dim('Difference'),
-    formatDiffTokens(inputDiff),
-    formatDiffTokens(outputDiff),
-    formatDiffTokens(totalDiff),
-  ]);
+  const runsPerEval = comparison.baseline.config.runs;
+
+  for (const evalComp of comparison.evalComparisons) {
+    const baselineResult = comparison.baseline.evalResults.find(
+      (r) => r.evalName === evalComp.evalName
+    );
+    const withSkillResult = comparison.withSkill.evalResults.find(
+      (r) => r.evalName === evalComp.evalName
+    );
+
+    const baselineAvgTotal = baselineResult?.totalUsage
+      ? Math.round((baselineResult.totalUsage.inputTokens + baselineResult.totalUsage.outputTokens) / runsPerEval)
+      : 0;
+    const withSkillAvgTotal = withSkillResult?.totalUsage
+      ? Math.round((withSkillResult.totalUsage.inputTokens + withSkillResult.totalUsage.outputTokens) / runsPerEval)
+      : 0;
+    const tokenDiff = withSkillAvgTotal - baselineAvgTotal;
+
+    usageTable.push([
+      evalComp.evalName,
+      formatTokens(baselineAvgTotal),
+      formatTokens(withSkillAvgTotal),
+      formatDiffTokens(tokenDiff),
+    ]);
+  }
 
   console.log(usageTable.toString());
 
-  // Print execution time comparison (average per run)
+  // Print execution time comparison (per eval averages)
   console.log('');
   console.log(chalk.bold('━'.repeat(80)));
-  console.log(chalk.bold.cyan('                     EXECUTION TIME (avg per run)'));
+  console.log(chalk.bold.cyan('                   EXECUTION TIME (avg per run, per eval)'));
   console.log(chalk.bold('━'.repeat(80)) + '\n');
 
   const timeTable = new Table({
     head: [
-      chalk.bold('Experiment'),
-      chalk.bold('Avg Time/Run'),
+      chalk.bold('Eval'),
+      chalk.bold('Baseline'),
+      chalk.bold('With Skill'),
+      chalk.bold('Delta'),
     ],
-    colWidths: [20, 20],
+    colWidths: [30, 14, 14, 14],
     style: {
       head: [],
       border: [],
     },
   });
-
-  // Calculate average execution time per run (rounded)
-  const baselineAvgTime = baselineTotalRuns > 0 ? Math.round(comparison.baseline.totalDurationMs / baselineTotalRuns) : 0;
-  const withSkillAvgTime = withSkillTotalRuns > 0 ? Math.round(comparison.withSkill.totalDurationMs / withSkillTotalRuns) : 0;
-
-  timeTable.push([
-    'Baseline',
-    formatDuration(baselineAvgTime),
-  ]);
-
-  timeTable.push([
-    'With Skill',
-    formatDuration(withSkillAvgTime),
-  ]);
-
-  // Calculate and show the difference
-  const timeDiff = withSkillAvgTime - baselineAvgTime;
 
   const formatDiffTime = (diff: number): string => {
     const formatted = formatDuration(Math.abs(diff));
@@ -290,10 +262,25 @@ export function printComparisonTable(comparison: ComparisonResult): void {
     return chalk.gray('0');
   };
 
-  timeTable.push([
-    chalk.dim('Difference'),
-    formatDiffTime(timeDiff),
-  ]);
+  for (const evalComp of comparison.evalComparisons) {
+    const baselineResult = comparison.baseline.evalResults.find(
+      (r) => r.evalName === evalComp.evalName
+    );
+    const withSkillResult = comparison.withSkill.evalResults.find(
+      (r) => r.evalName === evalComp.evalName
+    );
+
+    const baselineAvgTime = baselineResult ? Math.round(baselineResult.avgDurationMs) : 0;
+    const withSkillAvgTime = withSkillResult ? Math.round(withSkillResult.avgDurationMs) : 0;
+    const timeDiff = withSkillAvgTime - baselineAvgTime;
+
+    timeTable.push([
+      evalComp.evalName,
+      formatDuration(baselineAvgTime),
+      formatDuration(withSkillAvgTime),
+      formatDiffTime(timeDiff),
+    ]);
+  }
 
   console.log(timeTable.toString());
   console.log('');
