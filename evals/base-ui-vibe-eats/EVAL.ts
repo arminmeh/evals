@@ -21,7 +21,7 @@ describe("base-ui-vibe-eats eval", () => {
     ).toBeNull();
 
     // Verify at least one import from @base-ui/react exists
-    const baseUiImportPattern = /from\s+['"]@base-ui\/react['"]/g;
+    const baseUiImportPattern = /from\s+['"]@base-ui\/react\//g;
     const correctImports = content.match(baseUiImportPattern);
 
     expect(
