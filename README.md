@@ -14,39 +14,45 @@ This project enables you to:
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Copy environment example and add your API key
 cp .env.example .env
 # Edit .env and add your ANTHROPIC_API_KEY
 
 # Run a dry run to see what would execute
-npm run compare -- --dry
+pnpm run compare:dry
 
-# Run the full comparison
-npm run compare
+# Run the full comparison (SDK mode)
+pnpm run compare
+
+# Run using Claude Code agent mode
+pnpm run compare:agent
 ```
 
 ## Project Structure
 
 ```
-skill-evals/
+evals/
 ├── evals/                          # Individual eval test cases
-│   └── generate-add-function/      # Example eval
+│   └── <eval-name>/                # Each eval in its own directory
 │       ├── PROMPT.md               # Task description for the agent
 │       ├── EVAL.ts                 # Vitest assertions
-│       └── package.json            # Eval dependencies
+│       ├── package.json            # Eval dependencies
+│       ├── tsconfig.json           # TypeScript config
+│       └── src/                    # Starter template files (optional)
 ├── skills/                         # Skill definitions
-│   └── code-quality/               # Example skill
-│       └── SKILL.md                # Skill instructions
+│   └── <skill-name>/               # Each skill in its own directory
+│       └── SKILL.md                # Skill instructions with frontmatter
 ├── experiments/                    # Experiment configurations
-│   ├── baseline.ts                 # Without skill
-│   └── with-skill.ts               # With skill
+│   ├── baseline.ts                 # Without skill augmentation
+│   └── with-skill.ts               # With skill augmentation
 ├── src/                            # Core framework
-│   ├── types.ts                    # TypeScript types
-│   ├── skill-loader.ts             # Load SKILL.md files
-│   ├── runner.ts                   # Execute evals
-│   └── compare.ts                  # Comparison logic
+│   ├── types.ts                    # TypeScript type definitions
+│   ├── skill-loader.ts             # Load and parse SKILL.md files
+│   ├── runner.ts                   # SDK-based eval execution
+│   ├── agent-runner.ts             # Agent-based eval execution
+│   └── compare.ts                  # Comparison and formatting logic
 ├── scripts/
 │   └── run-comparison.ts           # CLI entry point
 └── package.json
@@ -85,6 +91,8 @@ skill-evals/
    }
    ```
 
+5. Optionally add starter template files in `src/` that the agent will build upon.
+
 ## Creating Skills
 
 1. Create a directory under `skills/`:
@@ -92,12 +100,11 @@ skill-evals/
    mkdir skills/my-skill
    ```
 
-2. Create `SKILL.md` with frontmatter and instructions:
+2. Create a skill markdown file with frontmatter and instructions:
    ```markdown
    ---
    name: my-skill
    description: A skill that does something useful
-   version: 1.0.0
    ---
 
    # My Skill
@@ -112,53 +119,42 @@ skill-evals/
 
 ## Running Experiments
 
-### Full Comparison
+### Execution Modes
+
+The framework supports two execution modes:
+
+- **SDK Mode** (default): Direct API calls using the Anthropic SDK
+- **Agent Mode**: Interactive sessions via Claude Code CLI
+
+### Commands
+
 ```bash
-npm run compare
+# Full comparison (SDK mode)
+pnpm run compare
+
+# Full comparison (Agent mode)
+pnpm run compare:agent
+
+# Dry run to see what would execute
+pnpm run compare:dry
+pnpm run compare:agent:dry
+
+# Debug mode with detailed test output
+pnpm run compare:debug
+pnpm run compare:agent:debug
 ```
 
-Output:
-```
-🔬 Skill Evals Comparison Runner
+### CLI Options
 
-▶ Starting experiment: baseline
-  Baseline experiment without skill augmentation
-  [baseline] generate-add-function run 1/3 ✓
-  [baseline] generate-add-function run 2/3 ✗
-  [baseline] generate-add-function run 3/3 ✓
-
-▶ Starting experiment: with-skill
-  Experiment with code-quality skill augmentation
-  [with-skill] generate-add-function run 1/3 ✓
-  [with-skill] generate-add-function run 2/3 ✓
-  [with-skill] generate-add-function run 3/3 ✓
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                     COMPARISON RESULTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-┌───────────────────────┬──────────┬────────────┬────────────┐
-│ Eval                  │ Baseline │ With Skill │ Delta      │
-├───────────────────────┼──────────┼────────────┼────────────┤
-│ generate-add-function │ 66.7%    │ 100%       │ +33.3%     │
-└───────────────────────┴──────────┴────────────┴────────────┘
-
-Summary: Skill improved pass rate by 33.3% on average
-```
-
-### Single Experiment
 ```bash
-npm run eval:baseline
-npm run eval:with-skill
-```
+# Custom number of runs per eval
+pnpm run compare -- --runs 5
 
-### Dry Run
-```bash
-npm run compare -- --dry
-```
+# Run specific evals only
+pnpm run compare -- --evals my-eval,another-eval
 
-### Custom Runs
-```bash
-npm run compare -- --runs 10
+# Specify execution mode
+pnpm run compare -- --mode agent
 ```
 
 ## Configuration
@@ -168,44 +164,46 @@ npm run compare -- --runs 10
 Edit `experiments/baseline.ts` or `experiments/with-skill.ts`:
 
 ```typescript
+import { ExperimentConfig } from '../src/types.js';
+
 const config: ExperimentConfig = {
   name: 'my-experiment',
   description: 'Description of the experiment',
   model: 'claude-sonnet-4-20250514',
-  runs: 3,
-  timeout: 120,
-  skill: null, // or path to SKILL.md
+  runs: 1,
+  timeout: 240,
+  skill: null, // or path to skill file
   evals: ['*'], // or specific eval names
+  executionMode: 'sdk', // or 'agent'
 };
+
+export default config;
 ```
 
 ### Environment Variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | - | Your Anthropic API key |
+| `ANTHROPIC_API_KEY` | Yes (SDK mode) | - | Your Anthropic API key |
+| `EXECUTION_MODE` | No | sdk | Execution mode: 'sdk' or 'agent' |
 | `MODEL` | No | claude-sonnet-4-20250514 | Model to use |
-| `RUNS` | No | 3 | Number of runs per eval |
-| `TIMEOUT` | No | 120 | Timeout in seconds |
+| `RUNS` | No | 1 | Number of runs per eval |
+| `TIMEOUT` | No | 240 | Timeout in seconds |
 
 ## Using External Skills
 
-To test a skill from another project:
+To test a skill from another project, reference its path in your experiment config:
 
-1. Update `experiments/with-skill.ts`:
-   ```typescript
-   const config: ExperimentConfig = {
-     // ...
-     skill: '/path/to/external/skill/SKILL.md',
-   };
-   ```
-
-2. Run the comparison:
-   ```bash
-   npm run compare
-   ```
+```typescript
+const config: ExperimentConfig = {
+  // ...
+  skill: '/path/to/external/skill/SKILL.md',
+};
+```
 
 ## Interpreting Results
+
+The comparison runner outputs a table showing pass rates for each eval across experiments, along with the delta (improvement or regression) when using skill augmentation.
 
 | Pass Rate | Interpretation |
 |-----------|---------------|
