@@ -113,7 +113,7 @@ async function callClaudeAPI(
   try {
     const response = await client.messages.create({
       model,
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [
         {
           role: "user",
