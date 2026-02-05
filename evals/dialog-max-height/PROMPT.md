@@ -1,0 +1,1 @@
+Using Base UI add a dialog in App.tsx with mock content (a trigger button, popup with title and description containing multiple paragraphs). Using a CSS file, ensure the dialog's popup doesn't exceed the available viewport height.
