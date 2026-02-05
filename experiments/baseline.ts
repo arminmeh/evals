@@ -8,8 +8,8 @@ const config: ExperimentConfig = {
   name: "baseline",
   description: "Baseline experiment without skill augmentation",
   model: "claude-sonnet-4-20250514",
-  runs: 3,
-  timeout: 120,
+  runs: 1,
+  timeout: 240,
   skill: null,
   evals: ["*"],
   // Agent config used when running with --mode agent
