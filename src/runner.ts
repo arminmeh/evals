@@ -245,13 +245,9 @@ function extractCodeBlocksWithNestedBackticks(
         if (filename && codeBlockContent.length > 0) {
           const cleanFilename = filename.replace(/^\//, "");
           files.set(cleanFilename, codeBlockContent.join("\n").trim());
-        } else if (codeBlockContent.length > 0) {
-          // No filename found, check if content looks like it should be src/math.ts
-          const content = codeBlockContent.join("\n");
-          if (content.includes("export") && content.includes("function")) {
-            files.set("src/math.ts", content.trim());
-          }
         }
+        // If no filename comment is found, skip this code block
+        // The model should follow instructions and include the filename
         inCodeBlock = false;
         continue;
       }
