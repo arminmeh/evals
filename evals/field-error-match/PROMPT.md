@@ -1,0 +1,1 @@
+Add an email input field with validation in App.tsx. The field should be required and validate email format. Display custom error messages: "Email is required" when the field is empty and "Please enter a valid email address" when the email format is invalid.
