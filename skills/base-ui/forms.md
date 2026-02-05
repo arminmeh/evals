@@ -5,13 +5,32 @@
 ### Field Structure
 
 ```tsx
-<Field.Root>
+<Field.Root name="email">
   <Field.Label>Email</Field.Label>
   <Field.Control type="email" required />
   <Field.Description>We'll never share your email</Field.Description>
   <Field.Error match="valueMissing">Required</Field.Error>
   <Field.Error match="typeMismatch">Invalid email</Field.Error>
 </Field.Root>
+```
+
+### Form Structure
+
+Whenever you need to use a form, the Form component should be used
+
+```tsx
+<Form aria-label="Sign-up form">
+  <Field.Root name="email">
+    <Field.Label>Email</Field.Label>
+    <Field.Control type="email" required />
+    <Field.Description>We'll never share your email</Field.Description>
+    <Field.Error match="valueMissing">Required</Field.Error>
+    <Field.Error match="typeMismatch">Invalid email</Field.Error>
+  </Field.Root>
+  <Button type="submit">
+    Submit
+  </Button>
+</Form>
 ```
 
 ### Validation Modes
