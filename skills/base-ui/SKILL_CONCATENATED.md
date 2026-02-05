@@ -360,7 +360,9 @@ Base UI uses `element.getAnimations()` to detect completion. If animating withou
 ### Namespace Types
 
 ```tsx
-import { Tooltip, Dialog, Menu } from '@base-ui/react';
+import { Tooltip } from '@base-ui/react/tooltip';
+import { Dialog } from '@base-ui/react/dialog';
+import { Menu } from '@base-ui/react/menu';
 
 // Props type for wrapper components
 function MyTooltip(props: Tooltip.Root.Props) {
