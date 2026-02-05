@@ -91,6 +91,18 @@ function formatUsage(usage: Usage | undefined): string {
 }
 
 /**
+ * Format duration in milliseconds for display
+ */
+function formatDuration(ms: number): string {
+  if (ms >= 60000) {
+    return `${(ms / 60000).toFixed(1)}m`;
+  } else if (ms >= 1000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
+  return `${Math.round(ms)}ms`;
+}
+
+/**
  * Format pass rate with runs count
  */
 function formatPassRate(passRate: number, passed: number, total: number): string {
@@ -230,6 +242,58 @@ export function printComparisonTable(comparison: ComparisonResult): void {
   ]);
 
   console.log(usageTable.toString());
+
+  // Print execution time comparison (average per run)
+  console.log('');
+  console.log(chalk.bold('━'.repeat(80)));
+  console.log(chalk.bold.cyan('                     EXECUTION TIME (avg per run)'));
+  console.log(chalk.bold('━'.repeat(80)) + '\n');
+
+  const timeTable = new Table({
+    head: [
+      chalk.bold('Experiment'),
+      chalk.bold('Avg Time/Run'),
+    ],
+    colWidths: [20, 20],
+    style: {
+      head: [],
+      border: [],
+    },
+  });
+
+  // Calculate average execution time per run (rounded)
+  const baselineAvgTime = baselineTotalRuns > 0 ? Math.round(comparison.baseline.totalDurationMs / baselineTotalRuns) : 0;
+  const withSkillAvgTime = withSkillTotalRuns > 0 ? Math.round(comparison.withSkill.totalDurationMs / withSkillTotalRuns) : 0;
+
+  timeTable.push([
+    'Baseline',
+    formatDuration(baselineAvgTime),
+  ]);
+
+  timeTable.push([
+    'With Skill',
+    formatDuration(withSkillAvgTime),
+  ]);
+
+  // Calculate and show the difference
+  const timeDiff = withSkillAvgTime - baselineAvgTime;
+
+  const formatDiffTime = (diff: number): string => {
+    const formatted = formatDuration(Math.abs(diff));
+    if (diff > 0) {
+      return chalk.yellow(`+${formatted}`);
+    } else if (diff < 0) {
+      return chalk.green(`-${formatted}`);
+    }
+    return chalk.gray('0');
+  };
+
+  timeTable.push([
+    chalk.dim('Difference'),
+    formatDiffTime(timeDiff),
+  ]);
+
+  console.log(timeTable.toString());
   console.log('');
 }
 
@@ -282,9 +346,14 @@ export function printExperimentResult(result: ExperimentResult): void {
     chalk.bold('Total duration: ') +
       `${(result.totalDurationMs / 1000).toFixed(1)}s`
   );
+  // Calculate average time per run (rounded)
+  const totalRuns = result.config.runs * result.evalResults.length;
+  const avgTimeMs = totalRuns > 0 ? Math.round(result.totalDurationMs / totalRuns) : 0;
+  console.log(
+    chalk.bold('Avg time/run: ') + formatDuration(avgTimeMs)
+  );
   if (result.totalUsage) {
     // Calculate average tokens per run (rounded)
-    const totalRuns = result.config.runs * result.evalResults.length;
     const avgInput = totalRuns > 0 ? Math.round(result.totalUsage.inputTokens / totalRuns) : 0;
     const avgOutput = totalRuns > 0 ? Math.round(result.totalUsage.outputTokens / totalRuns) : 0;
     console.log(
