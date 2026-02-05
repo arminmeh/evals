@@ -27,28 +27,29 @@ interface AgentExecutionResult {
 }
 
 /**
- * Copy starter files from eval's src/ directory to workspace
+ * Copy all starter files from eval directory to workspace.
+ * Copies everything except PROMPT.md and EVAL.ts, preserving directory structure.
  */
-async function copyStarterFiles(
+export async function copyStarterFiles(
   evalPath: string,
   workspaceDir: string
 ): Promise<string[]> {
-  const srcDir = join(evalPath, "src");
   const copiedFiles: string[] = [];
 
-  if (!existsSync(srcDir)) {
-    return copiedFiles;
-  }
-
-  // Recursively copy all files from src/ to workspace
-  const files = await glob("**/*", { cwd: srcDir, nodir: true });
+  // Recursively copy all files from eval directory to workspace,
+  // excluding PROMPT.md and EVAL.ts (which are handled separately)
+  const files = await glob("**/*", {
+    cwd: evalPath,
+    nodir: true,
+    ignore: ["PROMPT.md", "EVAL.ts"],
+  });
 
   for (const file of files) {
-    const srcPath = join(srcDir, file);
+    const srcPath = join(evalPath, file);
     const destPath = join(workspaceDir, file);
 
     // Ensure directory exists
-    const destDir = join(workspaceDir, file, "..");
+    const destDir = join(destPath, "..");
     await mkdir(destDir, { recursive: true });
 
     await cp(srcPath, destPath);
@@ -143,7 +144,9 @@ async function executeAgent(
       "Edit,Write,Bash,Read,Glob,Grep",
       // Read prompt from file
       "-p",
-      `Read the PROMPT.md file in this directory and complete the task described in it. Write the code files directly to this directory.`,
+      `Read the PROMPT.md file in this directory and complete the task described in it.
+
+IMPORTANT: You must ONLY work within this directory. Do NOT modify any files outside of this directory. All file operations (reading, writing, editing) and all commands (npm install, etc.) must be performed within this directory only. Never use absolute paths or navigate to parent directories.`,
       // Add any custom args from config
       ...(agentConfig.args ?? []),
     ];

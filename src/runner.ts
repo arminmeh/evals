@@ -15,7 +15,7 @@ import type {
   Usage,
 } from "./types.js";
 import { loadSkill, augmentPromptWithSkill } from "./skill-loader.js";
-import { runAgentEval } from "./agent-runner.js";
+import { runAgentEval, copyStarterFiles } from "./agent-runner.js";
 
 /**
  * Discover all evals in the evals directory
@@ -404,6 +404,9 @@ async function runSDKEval(
   runNumber: number
 ): Promise<{ result: RunResult; usage: Usage }> {
   const runStartTime = Date.now();
+
+  // Copy starter files from eval directory to workspace
+  await copyStarterFiles(evalDef.path, workspaceDir);
 
   // Prepare prompt (with or without skill)
   let prompt = evalDef.prompt;
