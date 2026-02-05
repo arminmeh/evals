@@ -11,6 +11,7 @@
     "compare:agent": "tsx scripts/run-comparison.ts --mode agent",
     "compare:agent:debug": "tsx scripts/run-comparison.ts --mode agent --debug",
     "compare:agent:dry": "tsx scripts/run-comparison.ts --mode agent --dry",
+    "concat-baseui-skill": "node ./scripts/concat-skill.mjs ./skills/base-ui ./skills/base-ui/SKILL_CONCATENATED.md",
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "tsc",
