@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
- * Experiment with skill augmentation - runs evals WITH the code-quality skill.
+ * Experiment with skill augmentation - runs evals WITH the skill.
  * Can run in SDK mode (direct API) or agent mode (Claude Code CLI).
  */
 const config: ExperimentConfig = {
