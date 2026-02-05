@@ -139,6 +139,9 @@ async function executeAgent(
       // Output as JSON to capture usage stats
       "--output-format",
       "json",
+      // Explicitly set working directory for isolation
+      "--cwd",
+      workspaceDir,
       // Allow necessary tools for code generation
       "--allowedTools",
       "Edit,Write,Bash,Read,Glob,Grep",
@@ -153,11 +156,17 @@ IMPORTANT: You must ONLY work within this directory. Do NOT modify any files out
 
     // Spawn the agent process
     // Use 'ignore' for stdin since we pass prompt via -p flag
+    // Create isolated environment:
+    // - Exclude ANTHROPIC_API_KEY so the CLI uses its own authentication
+    // - Exclude CLAUDE_PROJECT_DIR to prevent inheriting parent project context
+    const {
+      ANTHROPIC_API_KEY: _apiKey,
+      CLAUDE_PROJECT_DIR: _projectDir,
+      ...isolatedEnv
+    } = process.env;
     const agent = spawn(agentConfig.command, args, {
       cwd: workspaceDir,
-      env: {
-        ...process.env,
-      },
+      env: isolatedEnv,
       stdio: ["ignore", "pipe", "pipe"],
     });
 

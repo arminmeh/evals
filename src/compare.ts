@@ -6,6 +6,8 @@ import type {
   EvalComparison,
   ExecutionMode,
   Usage,
+  RunResult,
+  TestDetail,
 } from './types.js';
 
 /**
@@ -372,7 +374,9 @@ export function printRunProgress(
   evalName: string,
   run: number,
   total: number,
-  passed: boolean
+  passed: boolean,
+  result?: RunResult,
+  debug?: boolean
 ): void {
   const status = passed ? chalk.green('✓') : chalk.red('✗');
   console.log(
@@ -381,6 +385,59 @@ export function printRunProgress(
       chalk.dim(` run ${run}/${total} `) +
       status
   );
+
+  // In debug mode, show detailed test results and errors
+  if (debug && result) {
+    printDebugRunDetails(result);
+  }
+}
+
+/**
+ * Print detailed run information for debug mode
+ */
+export function printDebugRunDetails(result: RunResult): void {
+  // Show individual test results
+  if (result.testDetails && result.testDetails.length > 0) {
+    console.log(chalk.dim('    ─ Test Results:'));
+    for (const test of result.testDetails) {
+      const testStatus = test.passed ? chalk.green('✓') : chalk.red('✗');
+      console.log(`      ${testStatus} ${chalk.dim(test.name)}`);
+      if (!test.passed && test.failureMessage) {
+        // Show first line of failure message, indented
+        const firstLine = test.failureMessage.split('\n')[0]?.trim();
+        if (firstLine) {
+          console.log(chalk.red(`        └─ ${firstLine}`));
+        }
+      }
+    }
+  }
+
+  // Show agent output if available and run failed
+  if (!result.passed && result.agentOutput) {
+    // Show generated files if any
+    if (result.generatedFiles && result.generatedFiles.length > 0) {
+      console.log(chalk.dim('    ─ Files in workspace:'));
+      for (const file of result.generatedFiles) {
+        console.log(chalk.dim(`      ${file}`));
+      }
+    }
+
+    // Show full agent output
+    console.log(chalk.dim('    ─ Agent Output:'));
+    for (const line of result.agentOutput.split('\n')) {
+      console.log(chalk.dim(`      ${line}`));
+    }
+  }
+
+  // Show files in workspace even for passing runs (helpful for debugging)
+  if (result.passed && result.generatedFiles && result.generatedFiles.length > 0) {
+    console.log(chalk.dim('    ─ Files in workspace:'));
+    for (const file of result.generatedFiles) {
+      console.log(chalk.dim(`      ${file}`));
+    }
+  }
+
+  console.log(''); // Empty line for readability
 }
 
 /**
