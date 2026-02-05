@@ -4,6 +4,7 @@ import type {
   ExperimentResult,
   ComparisonResult,
   EvalComparison,
+  ExecutionMode,
   Usage,
 } from './types.js';
 
@@ -325,14 +326,16 @@ export function printExperimentStart(name: string, description: string): void {
  * Print dry run info
  */
 export function printDryRun(
-  experiments: Array<{ name: string; description: string; skill: string | null }>,
+  experiments: Array<{ name: string; description: string; skill: string | null; executionMode?: ExecutionMode }>,
   evals: string[]
 ): void {
   console.log('\n' + chalk.bold.yellow('🔬 DRY RUN - No API calls will be made\n'));
 
   console.log(chalk.bold('Experiments to run:'));
   for (const exp of experiments) {
-    console.log(`  • ${exp.name}: ${exp.description}`);
+    const mode = exp.executionMode ?? 'sdk';
+    const modeLabel = mode === 'agent' ? chalk.cyan('[agent]') : chalk.blue('[sdk]');
+    console.log(`  • ${modeLabel} ${exp.name}: ${exp.description}`);
     console.log(chalk.dim(`    Skill: ${exp.skill ?? 'none (baseline)'}`));
   }
 
