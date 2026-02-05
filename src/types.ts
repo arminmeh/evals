@@ -9,6 +9,25 @@ export interface Usage {
 }
 
 /**
+ * Execution mode for running evals
+ * - 'sdk': Direct API calls via @anthropic-ai/sdk (default)
+ * - 'agent': Interactive agent session via CLI (e.g., Claude Code)
+ */
+export type ExecutionMode = 'sdk' | 'agent';
+
+/**
+ * Configuration for agent-based execution
+ */
+export interface AgentConfig {
+  /** Agent command to run (e.g., 'claude', 'npx claude') */
+  command: string;
+  /** Additional arguments to pass to the agent CLI */
+  args?: string[];
+  /** Whether to enable early exit on first failure */
+  earlyExit?: boolean;
+}
+
+/**
  * Configuration for an experiment run
  */
 export interface ExperimentConfig {
@@ -16,7 +35,7 @@ export interface ExperimentConfig {
   name: string;
   /** Human-readable description */
   description: string;
-  /** Model to use (e.g., 'claude-sonnet-4-20250514') */
+  /** Model to use (e.g., 'claude-sonnet-4-20250514') - used in SDK mode */
   model: string;
   /** Number of runs per eval */
   runs: number;
@@ -26,6 +45,10 @@ export interface ExperimentConfig {
   skill: string | null;
   /** Which evals to run - array of glob patterns or ['*'] for all */
   evals: string[];
+  /** Execution mode: 'sdk' (default) or 'agent' */
+  executionMode?: ExecutionMode;
+  /** Agent configuration (required if executionMode is 'agent') */
+  agent?: AgentConfig;
 }
 
 /**
@@ -163,13 +186,15 @@ export interface ComparisonOptions {
   /** Run in dry mode (don't execute, just show what would run) */
   dry?: boolean;
   /** Only run specific experiment */
-  experiment?: 'baseline' | 'with-skill';
+  experiment?: string;
   /** Override number of runs */
   runs?: number;
   /** Verbose output */
   verbose?: boolean;
   /** Keep generated test files for manual inspection */
   debug?: boolean;
+  /** Override execution mode for all experiments */
+  mode?: ExecutionMode;
 }
 
 /**
