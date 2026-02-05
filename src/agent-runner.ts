@@ -133,15 +133,13 @@ async function executeAgent(
     }
 
     // Build the command arguments
+    // Note: working directory is set via spawn's cwd option below
     const args: string[] = [
       // Run in print mode (non-interactive)
       "--print",
       // Output as JSON to capture usage stats
       "--output-format",
       "json",
-      // Explicitly set working directory for isolation
-      "--cwd",
-      workspaceDir,
       // Allow necessary tools for code generation
       "--allowedTools",
       "Edit,Write,Bash,Read,Glob,Grep",
